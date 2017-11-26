@@ -4,7 +4,7 @@ RNN Training and Evaulation Module.
 This module defines an RNN, trains it, and evaluates the performance.
 
 @author: Gary Corcoran
-@date: Nov. 20th, 2017
+@date_created: Nov. 20th, 2017
 
 """
 import torch
