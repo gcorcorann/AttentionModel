@@ -7,12 +7,11 @@ This module defines an RNN, trains it, and evaluates the performance.
 @date: Nov. 20th, 2017
 
 """
-import random
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-import numpy as np
 from video_data import VideoData
+from rnn_training import Training
 import matplotlib.pyplot as plt
 
 
@@ -31,9 +30,6 @@ class RNN(nn.Module):
         self.i2h = nn.Linear(input_size + hidden_size, hidden_size)
         self.h2o = nn.Linear(hidden_size, output_size)
         self.softmax = nn.LogSoftmax()
-        self.n_iters = 10000
-        self.learning_rate = 0.005
-        self.criterion = nn.NLLLoss()
 
     def forward(self, input, hidden):
         """
@@ -51,107 +47,29 @@ class RNN(nn.Module):
         """
         return Variable(torch.zeros(1, self.hidden_size))
 
-    def _sequence_to_tensor(self, x):
-        """
-        Converts data sequence to tensor.
-
-        @param  x:  numpy array consisting of video data
-                    [num_frames, num_feats]
-
-        @return x:  tensor of dimension [num_frames, 1, num_feats]
-        """
-        # add dimension for batch size placeholder
-        x = np.expand_dims(x, axis=1)
-        tensor = torch.from_numpy(x)
-        return tensor
-
-    def __random_training_example(self, X_train, y_train):
-        """
-        Get random training example.
-
-        @return x:  pytorch Variable consisting of one training instance
-        @return y:  pytorch Variable consisting of one training label
-        """
-        r = random.randint(0, X_train.shape[0]-1)
-        # random training example
-        x = Variable(self._sequence_to_tensor(X_train[r]))
-        y = Variable(torch.LongTensor([int(y_train[r] - 1)]))
-        return x, y
-
-    def __train_instance(self, x_tensor, y_tensor):
-        # initialize hidden units to zero
-        hidden = rnn.init_hidden()
-        # zero gradients
-        self.zero_grad()
-        # for each frame in training instance 
-        for i in range(x_tensor.size()[0]):
-            output, hidden = rnn(x_tensor[i], hidden)
-        # compute loss
-        loss = self.criterion(output, y_tensor)
-        # compute backprop
-        loss.backward()
-        # add parameters' gradients to their values, multiplied by learning rate
-        for p in self.parameters():
-            p.data.add_(-self.learning_rate, p.grad.data)
-        return output, loss.data[0]
-
-    def label_from_output(self, output):
-        top_n, top_i = output.data.topk(1)
-        label = top_i[0][0] + 1
-        return label
-
-    def train(self, X_train, y_train, n_iters, learning_rate):
-        print('Training...')
-        self.n_iters = n_iters
-        self.learning_rate = learning_rate
-        # keep track of losses
-        current_loss = 0
-        all_losses = []
-        print_every = 100
-        plot_every = 50 
-        X_train = np.float32(X_train)
-        for iter in range(1, n_iters + 1):
-            print(iter)
-            # get random training example
-            x_tensor, y_tensor = self.__random_training_example(X_train,
-                    y_train)
-            output, loss = self.__train_instance(x_tensor, y_tensor)
-            current_loss += loss
-            # print iter number, loss, name, and guess
-            if iter % plot_every == 0:
-                all_losses.append(current_loss / plot_every)
-                current_loss = 0
-        return all_losses
 
 if __name__ == '__main__':
-    # data parameters
-    num_videos = 400
-    num_frames = 100
-    width = height = 32
+    # initialize video dataset parameters
     num_channels = 3
+    width = height = 32
+    vid_params = {'num_videos': 400, 'num_frames': 100, 'width': width, 
+        'height': height, 'num_channels': num_channels, 'ratio': 0.75}
     # rnn parameters
-    n_categories = 4
-    n_hidden = 128
-    n_iters = 1000
+    rnn_params = {'input_size': num_channels*width*height, 'hidden_size': 128,
+        'output_size': 4}
+    # training parameters
     learning_rate = 0.005
+    num_epochs = 5
     # initialize video data object
-    vids = VideoData('labels_gary.txt', num_videos, num_frames, width, height,
-            num_channels)
+    vids = VideoData('labels_gary.txt', **vid_params)
     # read and store videos
-    vids.read_data()
-    vids.normalize_data()
-    X_train, y_train = vids.X, vids.y
+    X_train, y_train, X_test, y_test = vids.read_data(normalize=True, load=True)
     # initialize RNN object
-    rnn = RNN(num_channels*width*height, n_hidden, n_categories)
-    all_losses = rnn.train(X_train, y_train, n_iters, learning_rate)
-    print(all_losses)
-
+    rnn = RNN(**rnn_params)
+    # initialize training object
+    tr = Training(rnn, X_train, y_train, learning_rate, num_epochs)
+    training_losses = tr.train()
+    # plot training losses
     plt.figure()
-    plt.plot(all_losses)
+    plt.plot(training_losses)
     plt.show()
-
-#   input = Variable(rnn.sequence_to_tensor(X_train[0], num_frames,
-#                width*height*num_channels))
-#    hidden = Variable(torch.zeros(1, n_hidden))
-#    output, next_hidden = rnn(input[0], hidden)
-
