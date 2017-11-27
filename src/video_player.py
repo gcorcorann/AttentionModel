@@ -54,6 +54,17 @@ class Video():
         """
         return self._video_path
 
+    def _check_video_path(self):
+        """
+        Check if video path is set.
+
+        @return ret:    true if video path is set, else false
+        """
+        if self.get_video_path() is None:
+            print('VideoError: Please input video path before running.')
+            return False
+        return True
+
     def set_processor(self, processor):
         """
         Set frame processor.
@@ -63,6 +74,16 @@ class Video():
         @modifies   self._processor:    stores object
         """
         self._processor = processor
+
+    def check_processor(self):
+        """
+        Check if frame processor is set.
+
+        @return ret:    true if frame processor is set, else false
+        """
+        if self._processor is None:
+            return False
+        return True
 
     def set_dimensions(self, width, height):
         """
@@ -77,6 +98,16 @@ class Video():
         self._width = width
         self._height = height
 
+    def check_dimensions(self):
+        """
+        Check if frame dimensions were set.
+
+        @return ret:    true if frame dimensions were set, else false
+        """
+        if self._width is not None and self._height is not None:
+            return True
+        return False
+
     def _is_opened(self):
         """
         Check if video is opened.
@@ -89,17 +120,6 @@ class Video():
                     self._video_path)
         return ret
 
-    def _check_video_path(self):
-        """
-        Check if video path is set.
-
-        @return ret:    true if video path is set, else false
-        """
-        if self.get_video_path() is None:
-            print('VideoError: Please input video path before running.')
-            return False
-        return True
-
     def _read(self):
         """
         Read video frame.
@@ -109,7 +129,7 @@ class Video():
         """
         ret, frame = self._cap.read()
         if ret is False:
-            print('VideoError: Reached end of file.')
+            print('Video: Reached end of file.')
         return ret, frame
 
     def _display(self, frame):
@@ -122,52 +142,65 @@ class Video():
         key = cv2.waitKey(33)
         # if user wants to exit
         if key == ord('q'):
-            print('VideoError: User quit video.')
+            print('Video: User quit video.')
             return False
         return True
 
-    def run(self):
+    def run(self, return_frames=False):
         """
         Play video stored in video_path.
+
+        @param  return_frames:  if true and a processor is set, return array 
+                                of processed frames
+
+        @return X_video:    array of processed frames
         """
         # check if user set video path
-        if self._check_video_path() is False:
+        if not self._check_video_path():
             return
         self._cap = cv2.VideoCapture(self._video_path)
         # check if video openec successfully
-        if self._is_opened() is False:
+        if not self._is_opened():
             return
         # read video frame
         ret, frame1 = self._read()
         # check if frame was successfully read
-        if ret is False:
+        if not ret:
             return
-        if self._width is None or self._height is None:
+        if not self.check_dimensions():
             frame1 = cv2.resize(frame1, None, fx=0.5, fy=0.5)
         else:
             frame1 = cv2.resize(frame1, (self._width, self._height))
         gray1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
+        # initialize list of processed frames
+        if return_frames and self.check_processor:
+            X_video = []
         # while video is still opened
         while self._is_opened():
             ret, frame2 = self._read()
-            if ret is False:
-                return
-            if self._width is None or self._height is None:
+            if not ret:
+                break
+            if not self.check_dimensions():
                 frame2 = cv2.resize(frame2, None, fx=0.5, fy=0.5)
             else:
                 frame2 = cv2.resize(frame2, (self._width, self._height))
             gray2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
             # check if processor is set 
-            if self._processor is not None:
+            if self.check_processor:
                 flow = self._processor.compute(gray1, gray2)
+                # append processed frames into list
+                if return_frames:
+                    X_video.append(flow)
                 disp_img = self._processor.visualize(frame2)
             else:
                 disp_img = frame2
             # display
-            if self._display(disp_img) is False:
-                return
+            if not self._display(disp_img):
+                break
             # set previous frame to current frame
             gray1 = gray2
+        if self.check_processor and return_frames:
+            return np.array(X_video)
 
 def main():
     """ Main Function. """
@@ -187,7 +220,9 @@ def main():
     opt = OpticalFlow(**opt_params)
     # create video player object
     vod = Video(video_path=video_path, processor=opt)
-    vod.run()
+    vod.set_dimensions(width=300, height=200)
+    X_video = vod.run(return_frames=True)
+    print('X data:', X_video.shape)
 
 if __name__ == '__main__':
     main()
