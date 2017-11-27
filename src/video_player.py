@@ -25,6 +25,8 @@ class Video():
         self._video_path = video_path
         self._processor = processor
         self._cap = None
+        self._width = None
+        self._height = None
 
     def __del__(self):
         """
@@ -44,6 +46,14 @@ class Video():
         """
         self._video_path = video_path
 
+    def get_video_path(self):
+        """
+        Returns video path.
+
+        @return video_path: path to input video file
+        """
+        return self._video_path
+
     def set_processor(self, processor):
         """
         Set frame processor.
@@ -54,13 +64,18 @@ class Video():
         """
         self._processor = processor
 
-    def get_video_path(self):
+    def set_dimensions(self, width, height):
         """
-        Returns video path.
+        Set frame dimensions.
 
-        @return video_path: path to input video file
+        @param  width:  resized frame width
+        @param  height: resized frame height
+
+        @modifies   self._width:    stores frame width
+        @modifies   self._height:   stores frame height
         """
-        return self._video_path
+        self._width = width
+        self._height = height
 
     def _is_opened(self):
         """
@@ -127,14 +142,20 @@ class Video():
         # check if frame was successfully read
         if ret is False:
             return
-        frame1 = cv2.resize(frame1, None, fx=0.5, fy=0.5)
+        if self._width is None or self._height is None:
+            frame1 = cv2.resize(frame1, None, fx=0.5, fy=0.5)
+        else:
+            frame1 = cv2.resize(frame1, (self._width, self._height))
         gray1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
         # while video is still opened
         while self._is_opened():
             ret, frame2 = self._read()
             if ret is False:
                 return
-            frame2 = cv2.resize(frame2, None, fx=0.5, fy=0.5)
+            if self._width is None or self._height is None:
+                frame2 = cv2.resize(frame2, None, fx=0.5, fy=0.5)
+            else:
+                frame2 = cv2.resize(frame2, (self._width, self._height))
             gray2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
             # check if processor is set 
             if self._processor is not None:
@@ -165,7 +186,7 @@ def main():
     # create optical flow object
     opt = OpticalFlow(**opt_params)
     # create video player object
-    vod = Video(video_path=video_path, processor=None)
+    vod = Video(video_path=video_path, processor=opt)
     vod.run()
 
 if __name__ == '__main__':
