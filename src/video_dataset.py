@@ -46,7 +46,6 @@ class VideoDataset():
         @return y:  dataset labels in format
                         [num_videos]
         """
-        print('Loading dataset...')
         # list for datasets
         X = []
         y = []
@@ -61,9 +60,10 @@ class VideoDataset():
                 print(video_path, video_label)
                 # run video
                 self._video.set_video_path(video_path)
-                self._video.run()
-#                X.append(self._read_video(video_path))
-#                y.append(int(video_label))
+                # return processed frames (i.e. flow)
+                X_video = self._video.run(return_frames=True)
+                X.append(X_video)
+                y.append(int(video_label))
                 print()
         return np.array(X), np.array(y)
 
@@ -96,10 +96,13 @@ def main():
     # create video data object
     vids = VideoDataset(labels_path, num_videos=10)
     # set video reader parameters
-    vids.set_video_params(width=300, height=200, processor=opt)
+    vids.set_video_params(width=100, height=100, processor=opt)
     X, y = vids.read_data()
-#    print('X:', X.shape)
-#    print('y:', y.shape)
+    print('X:', X.shape)
+    print('y:', y.shape)
+    # save flow datast
+    np.save('../data/X_flow.npy', X)
+    np.save('../data/y.npy', y)
 
 if __name__ == '__main__':
     main()
