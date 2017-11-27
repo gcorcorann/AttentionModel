@@ -22,35 +22,129 @@ class Video():
         @param  video_path: path to input video file
         @param  processor:  frame processor object
         """
-        self.video_path = video_path
+        self._video_path = video_path
         self._processor = processor
+        self._cap = None
+
+    def __del__(self):
+        """
+        Object destructor to release resources.
+        """
+        if self._cap is not None:
+            self._cap.release()
+        cv2.destroyAllWindows()
+
+    def set_video_path(self, video_path):
+        """
+        Set path to input video file.
+
+        @param  video_path: path to input video file
+
+        @modifies   self.video_path:    stores video file
+        """
+        self._video_path = video_path
+
+    def set_processor(self, processor):
+        """
+        Set frame processor.
+
+        @param  processor:  frame processor object
+        
+        @modifies   self._processor:    stores object
+        """
+        self._processor = processor
+
+    def get_video_path(self):
+        """
+        Returns video path.
+
+        @return video_path: path to input video file
+        """
+        return self._video_path
+
+    def _is_opened(self):
+        """
+        Check if video is opened.
+
+        @return ret:    true if video is opened, else false
+        """
+        ret = self._cap.isOpened()
+        if ret is False:
+            print('VideoError: Could not opened video file stored at:', 
+                    self._video_path)
+        return ret
+
+    def _check_video_path(self):
+        """
+        Check if video path is set.
+
+        @return ret:    true if video path is set, else false
+        """
+        if self.get_video_path() is None:
+            print('VideoError: Please input video path before running.')
+            return False
+        return True
+
+    def _read(self):
+        """
+        Read video frame.
+
+        @return ret:    false end of file, else true
+        @return frame:  video frame
+        """
+        ret, frame = self._cap.read()
+        if ret is False:
+            print('VideoError: Reached end of file.')
+        return ret, frame
+
+
+    def _display(self, frame):
+        """
+        Display video frame.
+        
+        @return ret:    false if user quit video, else true
+        """
+        cv2.imshow('Frame', frame)
+        key = cv2.waitKey(33)
+        # if user wants to exit
+        if key == ord('q'):
+            print('VideoError: User quit video.')
+            return False
+        return True
 
     def run(self):
         """
         Play video stored in video_path.
         """
-        processor = self._processor
-        cap = cv2.VideoCapture(self.video_path)
-        ret, frame1 = cap.read()
+        # check if user set video path
+        if self._check_video_path() is False:
+            return
+        self._cap = cv2.VideoCapture(self._video_path)
+        # check if video openec successfully
+        if self._is_opened() is False:
+            return
+        # read video frame
+        ret, frame1 = self._read()
+        # check if frame was successfully read
+        if ret is False:
+            return
         frame1 = cv2.resize(frame1, None, fx=0.5, fy=0.5)
         gray1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
-        while True:
-            ret, frame2 = cap.read()
+        # while video is still opened
+        while self._is_opened():
+            ret, frame2 = self._read()
+            if ret is False:
+                return
             frame2 = cv2.resize(frame2, None, fx=0.5, fy=0.5)
             gray2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
             # compute flow
-            flow = processor.compute(gray1, gray2)
-            flow_img = processor.visualize(frame2)
-            cv2.imshow('Frame', flow_img)
-            key = cv2.waitKey(30)
-            if key == ord('q'):
-                break
+            flow = self._processor.compute(gray1, gray2)
+            flow_img = self._processor.visualize(frame2)
+            # display
+            if self._display(flow_img) is False:
+                return
+            # set previous frame to current frame
             gray1 = gray2
-        cap.release()
-        cv2.destroyAllWindows()
-
-
-       
 
 def main():
     """ Main Function. """
