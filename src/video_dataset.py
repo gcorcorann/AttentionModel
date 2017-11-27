@@ -11,13 +11,14 @@ matrix.
 USAGE:  python video_dataset.py [<labels_source>]
 
 Keys:
-    q   -   exit program
+    q   -   skip video
 """
 import numpy as np
 from sklearn import preprocessing
 import cv2
 from os.path import isfile
 from video_player import Video
+from optical_flow import OpticalFlow
 
 class VideoDataset():
     """
@@ -35,30 +36,6 @@ class VideoDataset():
         self._num_videos = num_videos
         # initialize video reader object
         self._video = Video()
-
-    def _read_video(self, video_path):
-        """
-        Read and store data from video.
-
-        @param  video_path:     path of video file
-
-        @return X:              numpy array of stored video
-        """
-        # list to store video data
-        X_vid = []
-        # open video
-        if self._cap.open(video_path) is False:
-            print('Could not open video.')
-        # for given number of frames
-        for i in range(self.num_frames):
-            ret, frame = self._cap.read()
-            if ret is False:
-                print('Reached end of file.')
-            frame = cv2.resize(frame, (self.width, self.height))
-            if self.num_channels == 1:
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            X_vid.append(frame)
-        return X_vid
 
     def read_data(self):
         """
@@ -82,9 +59,12 @@ class VideoDataset():
                 print('Video', i+1, '/', self._num_videos)
                 video_path, video_label = line.split()
                 print(video_path, video_label)
-                print()
+                # run video
+                self._video.set_video_path(video_path)
+                self._video.run()
 #                X.append(self._read_video(video_path))
 #                y.append(int(video_label))
+                print()
         return np.array(X), np.array(y)
 
     def set_video_params(self, width, height, processor=None):
@@ -108,11 +88,16 @@ def main():
     else:
         # set default labels path
         labels_path = '../labels_gary.txt'
+    # optical flow parameters
+    opt_params = {'pyr_scale': 0.5, 'levels': 3, 'winsize': 15, 'iterations': 3,
+        'poly_n': 5, 'poly_sigma': 1.2}
+    # create optical flow object
+    opt = OpticalFlow(**opt_params)
     # create video data object
     vids = VideoDataset(labels_path, num_videos=10)
     # set video reader parameters
-    vids.set_video_params(width=300, hieght=200, processor=opt)
-#    X, y = vids.read_data()
+    vids.set_video_params(width=300, height=200, processor=opt)
+    X, y = vids.read_data()
 #    print('X:', X.shape)
 #    print('y:', y.shape)
 
