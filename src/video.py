@@ -97,7 +97,6 @@ class Video():
             print('VideoError: Reached end of file.')
         return ret, frame
 
-
     def _display(self, frame):
         """
         Display video frame.
