@@ -136,11 +136,14 @@ class Video():
                 return
             frame2 = cv2.resize(frame2, None, fx=0.5, fy=0.5)
             gray2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
-            # compute flow
-            flow = self._processor.compute(gray1, gray2)
-            flow_img = self._processor.visualize(frame2)
+            # check if processor is set 
+            if self._processor is not None:
+                flow = self._processor.compute(gray1, gray2)
+                disp_img = self._processor.visualize(frame2)
+            else:
+                disp_img = frame2
             # display
-            if self._display(flow_img) is False:
+            if self._display(disp_img) is False:
                 return
             # set previous frame to current frame
             gray1 = gray2
@@ -162,7 +165,7 @@ def main():
     # create optical flow object
     opt = OpticalFlow(**opt_params)
     # create video player object
-    vod = Video(video_path=video_path, processor=opt)
+    vod = Video(video_path=video_path, processor=None)
     vod.run()
 
 if __name__ == '__main__':

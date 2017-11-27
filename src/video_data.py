@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Video Data Module.
 
@@ -7,6 +8,10 @@ matrix.
 @author: Gary Corcoran
 @date_created: Nov. 20th, 2017
 
+USAGE:  python video_data.py [<labels_source>]
+
+Keys:
+    q   -   exit program
 """
 import numpy as np
 from sklearn import preprocessing
@@ -32,12 +37,12 @@ class VideoData():
         @param  num_channels:   number of color channels    
                                     @pre 1 or 3
         """
-        self.path = labels_path
-        self.num_videos = num_videos
-        self.num_frames = num_frames
-        self.width = width
-        self.height = height
-        self.num_channels = num_channels
+        self._path = labels_path
+        self._num_videos = num_videos
+        self._num_frames = num_frames
+        self._width = width
+        self._height = height
+        self._num_channels = num_channels
         self._cap = cv2.VideoCapture()
 
     def _read_video(self, video_path):
@@ -93,14 +98,22 @@ class VideoData():
 
 def main():
     """ Main Function. """
-    labels_path = '../labels_gary.txt'
+    import sys
+    print(__doc__)
+    if len(sys.argv) >= 2:
+        # set command line input to labels path
+        labels_path = sys.argv[1]
+    else:
+        # set default labels path
+        labels_path = '../labels_gary.txt'
     # initialize video dataset parameters
     vid_params = {'num_videos': 10, 'num_frames': 100, 'width': 300, 
         'height': 200, 'num_channels': 3}
+    # create video data object
     vids = VideoData(labels_path, **vid_params)
-    X, y = vids.read_data()
-    print('X:', X.shape)
-    print('y:', y.shape)
+#    X, y = vids.read_data()
+#    print('X:', X.shape)
+#    print('y:', y.shape)
 
 if __name__ == '__main__':
     main()
