@@ -5,7 +5,7 @@ Video Player Module.
 @author: Gary Corcoran
 @date_created: Nov. 24th, 2017
 
-USAGE: python video_player.py [<video_source>]
+USAGE: python video.py [<video_source>]
 
 Keys:
     q   -   exit video
