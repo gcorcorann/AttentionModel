@@ -49,7 +49,7 @@ class RNN(nn.Module):
         return Variable(torch.zeros(1, self.hidden_size))
 
 
-# HELPER FUNCTIONS #
+# HELPER FUNCTION #
 def read_data(X_path, y_path):
     """
     Read and return data.
