@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 RNN Training and Evaulation Module.
 
@@ -6,14 +7,14 @@ This module defines an RNN, trains it, and evaluates the performance.
 @author: Gary Corcoran
 @date_created: Nov. 20th, 2017
 
+USAGE:  python rnn.py
+
+Keys:
 """
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from video_data import VideoData
-from rnn_training import Training
-import matplotlib.pyplot as plt
-
 
 class RNN(nn.Module):
     """ Vanilla RNN. """
@@ -48,28 +49,39 @@ class RNN(nn.Module):
         return Variable(torch.zeros(1, self.hidden_size))
 
 
-if __name__ == '__main__':
-    # initialize video dataset parameters
-    num_channels = 3
-    width = height = 32
-    vid_params = {'num_videos': 400, 'num_frames': 100, 'width': width, 
-        'height': height, 'num_channels': num_channels, 'ratio': 0.75}
+# HELPER FUNCTIONS #
+def read_data(X_path, y_path):
+    """
+    Read and return data.
+
+    @param  X_path:     path to input data
+    @param  y_path:     path to input labels
+
+    @return X:          array of input data
+    @return y:          array of input labels
+    """
+    print(X_path, y_path)
+    X = np.load(X_path)
+    y = np.load(y_path)
+    return X, y
+
+def main():
+    """ Main Function. """
     # rnn parameters
-    rnn_params = {'input_size': num_channels*width*height, 'hidden_size': 128,
+    width = height = 100
+    num_channels = 2
+    rnn_params = {'input_size': width*height*num_channels, 'hidden_size': 128,
         'output_size': 4}
     # training parameters
     learning_rate = 0.005
     num_epochs = 5
-    # initialize video data object
-    vids = VideoData('labels_gary.txt', **vid_params)
-    # read and store videos
-    X_train, y_train, X_test, y_test = vids.read_data(normalize=True, load=True)
     # initialize RNN object
     rnn = RNN(**rnn_params)
-    # initialize training object
-    tr = Training(rnn, X_train, y_train, learning_rate, num_epochs)
-    training_losses = tr.train()
-    # plot training losses
-    plt.figure()
-    plt.plot(training_losses)
-    plt.show()
+    print(rnn)
+    # read input data
+    X, y = read_data('../data/X_flow.npy', '../data/y.npy')
+    print(X.shape)
+    print(y.shape)
+
+if __name__ == '__main__':
+    main()
