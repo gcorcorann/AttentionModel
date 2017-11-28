@@ -5,7 +5,7 @@ Optical Flow Module.
 @author: Gary Corcoran
 @date_created: Nov. 25th, 2017
 
-USAGE: optical_flow.py [<video_source>]
+USAGE: python optical_flow.py [<video_source>]
 
 Keys:
     any key - exit
