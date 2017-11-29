@@ -138,7 +138,7 @@ def main():
     print(__doc__)
     # load small flow dataset
     X_train, y_train = read_data('../data/X_flow_small.npy',
-            '../data/y_small.npy')
+            '../data/y_flow_small.npy')
     print('X_train:', X_train.shape)
     print('y_train:', y_train.shape)
     print()
