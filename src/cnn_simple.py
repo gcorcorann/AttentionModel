@@ -65,8 +65,8 @@ def main():
     """ Main Function. """
     print(__doc__)
     # read input data
-    inputs, labels = read_data('../data/X_flow_med.npy',
-            '../data/y_flow_med.npy')
+    inputs, labels = read_data('../data/X_flow_small.npy',
+            '../data/y_flow_small.npy')
     print('Inputs:', inputs.shape)
     print('Labels:', labels.shape)
     # create CNN object
