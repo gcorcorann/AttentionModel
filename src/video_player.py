@@ -146,12 +146,13 @@ class Video():
             return False
         return True
 
-    def run(self, return_frames=False):
+    def run(self, display=True, return_frames=False):
         """
         Play video stored in video_path.
 
         @param  return_frames:  if true and a processor is set, return array 
                                 of processed frames
+        @param  display:        if true display processed frames
 
         @return X_video:    array of processed frames
         """
@@ -191,12 +192,15 @@ class Video():
                 # append processed frames into list
                 if return_frames:
                     X_video.append(flow)
-                disp_img = self._processor.visualize(frame2)
+                if display:
+                    disp_img = self._processor.visualize(frame2)
             else:
-                disp_img = frame2
+                if display:
+                    disp_img = frame2
             # display
-            if not self._display(disp_img):
-                break
+            if display:
+                if not self._display(disp_img):
+                    break
             # set previous frame to current frame
             gray1 = gray2
         if self.check_processor and return_frames:
@@ -221,7 +225,7 @@ def main():
     # create video player object
     vod = Video(video_path=video_path, processor=opt)
     vod.set_dimensions(width=300, height=200)
-    X_video = vod.run(return_frames=True)
+    X_video = vod.run(display=True, return_frames=True)
     print('X data:', X_video.shape)
 
 if __name__ == '__main__':
