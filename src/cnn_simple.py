@@ -23,9 +23,8 @@ class Net(nn.Module):
         self.conv1 = nn.Conv2d(2, 6, 5)
         self.conv2 = nn.Conv2d(6, 16, 5)
         # an affine operation: y = Wx + b
-        self.fc1 = nn.Linear(16 * 22 * 22, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 4)
+        self.fc1 = nn.Linear(16 * 22 * 22, 2048)
+        self.fc2 = nn.Linear(2048, 4)
 
     def forward(self, x):
         # max pooling over a (2,2) window
@@ -34,8 +33,7 @@ class Net(nn.Module):
         x = F.max_pool2d(F.relu(self.conv2(x)), 2)
         x = x.view(-1, self.num_flat_features(x))
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = self.fc2(x)
         return x
 
     def num_flat_features(self, x):
@@ -80,7 +78,7 @@ def main():
     optimizer = optim.SGD(net.parameters(), lr=0.0001, momentum=0.9)
 
     # train the network
-    for epoch in range(10):
+    for epoch in range(5):
         running_loss = 0.0
         # get the inputs
         for i, x_vid in enumerate(inputs):
