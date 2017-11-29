@@ -44,9 +44,12 @@ class VideoDataset():
         self._X = np.zeros((num_videos, 99, height, width, 2), dtype=np.float32)
         self._y = np.zeros((num_videos), dtype=np.int32)
 
-    def read_data(self):
+    def read_data(self, display, return_frames):
         """
         Read and store videos and labels located at labels_path.
+
+        @param  display:    if true display processed frames
+        @param  return_frames:  if true return array of processed frames
 
         @return X:  dataset features in format 
                         [num_videos, num_frames, num_feats]
@@ -65,7 +68,7 @@ class VideoDataset():
                 # run video
                 self._video.set_video_path(video_path)
                 # return processed frames (i.e. flow)
-                X_video = self._video.run(return_frames=True)
+                X_video = self._video.run(display, return_frames)
                 self._X[i] = X_video
                 self._y[i] = video_label
                 print()
@@ -98,16 +101,16 @@ def main():
     # create optical flow object
     opt = OpticalFlow(**opt_params)
     # create video data object
-    vids = VideoDataset(labels_path, num_videos=10, width=100, height=100,
+    vids = VideoDataset(labels_path, num_videos=100, width=100, height=100,
             processor=opt)
-    X, y = vids.read_data()
+    X, y = vids.read_data(display=False, return_frames=True)
     print(X.dtype)
     print(y.dtype)
     print('X:', X.shape)
     print('y:', y.shape)
     # save flow datast
-    np.save('../data/X_flow.npy', X)
-    np.save('../data/y.npy', y)
+    np.save('../data/X_flow_med.npy', X)
+    np.save('../data/y_flow_med.npy', y)
 
 if __name__ == '__main__':
     main()
