@@ -8,17 +8,16 @@ Convolutional Neural Network Module.
 USAGE:  python cnn.py
 
 """
-import numpy as np
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-class Net(nn.Module):
+class CNN(nn.Module):
     """ CNN Modules. """
     def __init__(self):
-        super(Net, self).__init__()
+        super(CNN, self).__init__()
         # 1 input image channel, 6 output channels, 5x5 square convolution
         self.conv1 = nn.Conv2d(2, 6, 5)
         self.conv2 = nn.Conv2d(6, 16, 5)
@@ -45,6 +44,8 @@ class Net(nn.Module):
         return num_features
 
 # HELPER FUNCTION #
+import numpy as np
+
 def read_data(X_path, y_path):
     """
     Read and return data.
@@ -64,21 +65,22 @@ def main():
     """ Main Function. """
     print(__doc__)
     # read input data
-    inputs, labels = read_data('../data/X_flow_small.npy',
-            '../data/y_small.npy')
-
+    inputs, labels = read_data('../data/X_flow_med.npy',
+            '../data/y_flow_med.npy')
     print('Inputs:', inputs.shape)
     print('Labels:', labels.shape)
     # create CNN object
-    net = Net()
-    print(net)
+    cnn = CNN()
+    print(cnn)
 
     # define a loss function and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=0.0001, momentum=0.9)
+    optimizer = optim.SGD(cnn.parameters(), lr=0.0001, momentum=0.9)
 
     # train the network
+    print('Training Model...')
     for epoch in range(5):
+        print('Epoch:', epoch)
         running_loss = 0.0
         # get the inputs
         for i, x_vid in enumerate(inputs):
@@ -96,7 +98,7 @@ def main():
                 optimizer.zero_grad()
 
                 # forward + backward + optimize
-                output = net(input)
+                output = cnn(input)
                 loss = criterion(output, label)
                 loss.backward()
                 optimizer.step()
@@ -104,7 +106,8 @@ def main():
                 # print statistics
                 running_loss += loss.data[0]
 
-        print('[%d] loss: %.3f' % (epoch + 1, running_loss / 100))
+        running_loss /= (i*j)
+        print('\tLoss:', running_loss)
         running_loss = 0.0
 
     print('Finished Training')
