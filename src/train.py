@@ -19,6 +19,7 @@ from cnn_features import CNN_Features
 from rnn import RNN
 import random
 import numpy as np
+import matplotlib.pyplot as plt
 
 # HELPER FUNCTIONS #
 def read_data(X_path, y_path):
@@ -50,7 +51,8 @@ def random_training_example(X_train, y_train, batch_size):
     return x, x_var, y, y_var
 
 def train(cnn, rnn, X_train, y_train, criterion, optimizer):
-    batch_size = 2
+    batch_size = 1
+    all_losses = []
     print('Training Model...')
     for epoch in range(5):
         print('Epoch:', epoch)
@@ -77,9 +79,12 @@ def train(cnn, rnn, X_train, y_train, criterion, optimizer):
             running_loss += loss.data[0]
 
         # print statistics
-        print('Epoch loss:', running_loss / X_train.shape[0] * batch_size)
+        running_loss *= (batch_size/X_train.shape[0])
+        all_losses.append(running_loss)
+        print('Epoch loss:', running_loss)
 
     print('Finished Training...')
+    return all_losses
             
 def main():
     """ Main Function. """
@@ -112,7 +117,12 @@ def main():
         ])
     
     # train model
-    train(cnn, rnn, X_train, y_train, criterion, optimizer)
+    losses = train(cnn, rnn, X_train, y_train, criterion, optimizer)
+    # display training loss
+    plt.figure()
+    plt.plot(losses)
+    plt.title('Training Losses'), plt.xlabel('Epoch'), plt.ylabel('Loss')
+    plt.show()
 
 if __name__ == '__main__':
     main()
