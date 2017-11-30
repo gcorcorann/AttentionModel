@@ -56,61 +56,72 @@ def read_data(X_path, y_path):
     @return X:          array of input data
     @return y:          array of input labels
     """
-    print(X_path, y_path)
     X = np.load(X_path)
     y = np.load(y_path)
     return X, y
+
+def random_training_example(X_train, y_train, batch_size):
+    idx = np.random.permutation(X_train.shape[0])
+    idx = idx[:batch_size]
+    x = X_train[idx]
+    y = y_train[idx]
+    y -= 1  # [1-4] to [0-3]
+    # need to use LongTensor
+    y = np.asarray(y, dtype=np.int64)
+    # reshape into nSamples x nChannels x Height x Width
+    x = np.swapaxes(x, 1, -1)
+    x_var = Variable(torch.from_numpy(x))
+    y_var = Variable(torch.from_numpy(y))
+    return x, x_var, y, y_var 
+
+def train(cnn, X_train, y_train, criterion, optimizer):
+    batch_size = 100
+    print('Training Model...')
+    for epoch in range(10):
+        print('Epoch:', epoch)
+        running_loss = 0.0
+        # go through all training examples
+        for i in range(X_train.shape[0]//batch_size):
+            # get batch of random training examples
+            # nSamples x nChannels x Height x Width
+            x, x_var, y, y_var = random_training_example(X_train, y_train, 
+                    batch_size)
+            # zero the parameter gradients
+            optimizer.zero_grad()
+            # forward + backward + optimize
+            output = cnn(x_var)
+            loss = criterion(output, y_var)
+            loss.backward()
+            optimizer.step()
+
+            # print statistics
+            running_loss += loss.data[0]
+
+        print('Epoch Loss:', running_loss / X_train.shape[0] * batch_size)
+        running_loss = 0
+
+    print('Finished Training')
 
 def main():
     """ Main Function. """
     print(__doc__)
     # read input data
-    inputs, labels = read_data('../data/X_flow_small.npy',
-            '../data/y_flow_small.npy')
-    print('Inputs:', inputs.shape)
-    print('Labels:', labels.shape)
+    X_train, y_train = read_data('../data/X_flow_big.npy',
+            '../data/y_flow_big.npy')
+    # we only need to last frame for CNN
+    X_train = X_train[:, -1].copy()
+    print('X_train:', X_train.shape)
+    print('y_train:', y_train.shape)
+
     # create CNN object
     cnn = CNN()
     print(cnn)
-
     # define a loss function and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(cnn.parameters(), lr=0.0001, momentum=0.9)
+    optimizer = optim.SGD(cnn.parameters(), lr=0.001, momentum=0.9)
 
     # train the network
-    print('Training Model...')
-    for epoch in range(5):
-        print('Epoch:', epoch)
-        running_loss = 0.0
-        # get the inputs
-        for i, x_vid in enumerate(inputs):
-            for j, x_frame in enumerate(x_vid):
-                # create tensors
-                x = np.swapaxes(x_frame, 0,2)
-                x = torch.from_numpy(x)
-                x = torch.unsqueeze(x, 0)
-                y = labels[i]
-                y = torch.LongTensor([int(y-1)])
-                # wrap them in Variable
-                input, label = Variable(x), Variable(y)
-                
-                # zero the parameter gradients
-                optimizer.zero_grad()
-
-                # forward + backward + optimize
-                output = cnn(input)
-                loss = criterion(output, label)
-                loss.backward()
-                optimizer.step()
-
-                # print statistics
-                running_loss += loss.data[0]
-
-        running_loss /= (i*j)
-        print('\tLoss:', running_loss)
-        running_loss = 0.0
-
-    print('Finished Training')
+    train(cnn, X_train, y_train, criterion, optimizer)
                 
 if __name__ == '__main__':
     main()
