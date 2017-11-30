@@ -42,11 +42,11 @@ class RNN(nn.Module):
         output = self.softmax(output)
         return output, hidden
 
-    def init_hidden(self):
+    def init_hidden(self, batch_size):
         """
         Initialize hidden units to zero.
         """
-        return Variable(torch.zeros(1, self.hidden_size))
+        return Variable(torch.zeros(batch_size, self.hidden_size))
 
 
 # HELPER FUNCTIONS #
@@ -67,7 +67,7 @@ def read_data(X_path, y_path):
     y = np.load(y_path)
     return X, y
 
-def random_training_example(X_train, y_train):
+def random_training_example(X_train, y_train, batch_size):
     """
     Retrieve random training example.
 
@@ -79,66 +79,57 @@ def random_training_example(X_train, y_train):
     @return y:      integer containing random training label
     @return y_var:  pytorch Variable containing random training label
     """
-    r = random.randint(0, X_train.shape[0]-1)
-    x = X_train[r]
+    idx = np.random.permutation(X_train.shape[0])
+    idx = idx[:batch_size]
+    x = X_train[idx]
+    y = y_train[idx]
+    y -= 1  # [1-4] to [0-3]
+    # need to use LongTensor
+    y = np.asarray(y, dtype=np.int64)
+    # reshape into nSequence x nBatch x nFeatures
+    x = np.swapaxes(x, 1, 0)
+    x = np.reshape(x, (99, batch_size, -1))
     x_var = Variable(torch.from_numpy(x))
-    x_var = x_var.view(99, 1, 100*100*2)
-    y = int(y_train[r] - 1)
-    y_var = Variable(torch.LongTensor([y]))
+    y_var = Variable(torch.from_numpy(y))
     return x, x_var, y, y_var
 
-def train_instance(x_var, y_var, rnn, criterion, optimizer):
-    """
-    Train model on training instance.
-
-    @param  x_var:  pytorch Variable containing single training instance
-    @param  y_var:  pytorch Variable containing single training label
-    """
-    hidden = rnn.init_hidden()
-    rnn.zero_grad()
-    # for each frame in training example
-    for frame in range(x_var.size()[0]):
-        x_frame = x_var[frame]
-        # pass through RNN
-        output, hidden = rnn(x_frame, hidden)
-    loss = criterion(output, y_var)
-    loss.backward()
-    optimizer.step()
-    return output, loss.data[0]
-
-def train(X_train, y_train, rnn):
-    """
-    Train Model.
-    """
+def train(rnn, X_train, y_train, criterion, optimizer):
+    batch_size = 10
     print('Training Model...')
-    # define a loss function and optimizer
-    criterion = nn.NLLLoss()
-    optimizer = optim.SGD(rnn.parameters(), lr=0.0001, momentum=0.9)
-    # keep track of losses
-    current_loss = 0.0
-    num_examples, num_frames = X_train.shape[:2]
-    print('Num_examples:', num_examples)
-    print('Num_frames:', num_frames)
-    print()
-    for epoch in range(5):
+    for epoch in range(10):
         print('Epoch:', epoch)
-        for i in range(num_examples):
-            # get random training example
-            x, x_var, y, y_var = random_training_example(X_train, y_train)
-            output, loss = train_instance(x_var, y_var, rnn, criterion,
-                optimizer)
-            current_loss += loss
-        current_loss /= num_examples
-        print('\tLoss:', current_loss)
-        current_loss = 0
-    print('Finished Training...')
+        running_loss = 0.0
+        # go through all training examples
+        for i in range(X_train.shape[0]//batch_size):
+            # get batch of random training examples
+            # nSequence x nBatch x nFeatures
+            x, x_var, y, y_var = random_training_example(X_train, y_train, 
+                    batch_size)
+            # zero the parameter gradients
+            optimizer.zero_grad()
+            # zero initial hidden state
+            hidden = rnn.init_hidden(batch_size)
+            # for each frame in sequence
+            for j in range(x_var.size()[0]):
+                # pass through RNN
+                output, hidden = rnn(x_var[j], hidden)
+            loss = criterion(output, y_var)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.data[0]
+        
+        # print statistics
+        print('Epoch Loss:', running_loss / X_train.shape[0] * batch_size)
+        running_loss = 0
+
+    print('Finished Training.')
 
 def main():
     """ Main Function. """
     print(__doc__)
     # load small flow dataset
-    X_train, y_train = read_data('../data/X_flow_small.npy',
-            '../data/y_flow_small.npy')
+    X_train, y_train = read_data('../data/X_flow_med.npy',
+            '../data/y_flow_med.npy')
     print('X_train:', X_train.shape)
     print('y_train:', y_train.shape)
     print()
@@ -149,9 +140,12 @@ def main():
     rnn = RNN(**rnn_params)
     print(rnn)
     print()
-    
+
+    # define a loss function and optimizer
+    criterion = nn.NLLLoss()
+    optimizer = optim.SGD(rnn.parameters(), lr=0.001, momentum=0.9)
     # train model
-    train(X_train, y_train, rnn)
+    train(rnn, X_train, y_train, criterion, optimizer)
 
 if __name__ == '__main__':
     main()
