@@ -128,8 +128,6 @@ class Video():
         @return frame:  video frame
         """
         ret, frame = self._cap.read()
-        if ret is False:
-            print('Video: Reached end of file.')
         return ret, frame
 
     def _display(self, frame):
