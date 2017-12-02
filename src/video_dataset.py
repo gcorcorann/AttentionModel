@@ -24,55 +24,56 @@ class VideoDataset():
     """
     Class to hold and manipulate video data and labels.
     """
-    def __init__(self, labels_path, num_videos, width, height, processor):
+    def __init__(self, labels_path):
         """
         Initialize Video Dataset class.
 
         @param  labels_path:    path to labels text file
-        @param  num_videos:     number of videos to include in dataset
-                                    @pre >= 1 and < 1750
-        @param  width:          resize frame to this width
-        @param  height:         resize frame to this height
-        @param  processor:      frame processor object
         """
         self._labels_path = labels_path
-        self._num_videos = num_videos
-        # initialize video reader object
         self._video = Video()
-        self.set_video_params(width, height, processor)
-        # store data, 99 frames from flow, and 2 dimensions, fx, fy
-        self._X = np.zeros((num_videos, 99, height, width, 2), dtype=np.float32)
-        self._y = np.zeros((num_videos), dtype=np.int32)
 
-    def read_data(self, display, return_frames):
+    def read_data(self):
         """
         Read and store videos and labels located at labels_path.
 
-        @param  display:    if true display processed frames
-        @param  return_frames:  if true return array of processed frames
-
-        @return X:  dataset features in format 
-                        [num_videos, num_frames, num_feats]
-        @return y:  dataset labels in format
-                        [num_videos]
+        @return X:
+        @return y:
         """
         # create empty arrays for features and labels
+        X = []
+        y = []
         with open(self._labels_path, 'r') as file:
              for i, line in enumerate(file):
-                # break if reached video limit
-                if i == self._num_videos:
-                    break
-                print('Video', i+1, '/', self._num_videos)
+                print('Video', i+1)
                 video_path, video_label = line.split()
                 print(video_path, video_label)
-                # run video
-                self._video.set_video_path(video_path)
-                # return processed frames (i.e. flow)
-                X_video = self._video.run(display, return_frames)
-                self._X[i] = X_video
-                self._y[i] = video_label
+                X.append(video_path)
+                y.append(video_label)
                 print()
-        return self._X, self._y
+        return np.array(X), np.array(y)
+
+    def partition_data(self, X, y, ratio):
+        """
+        Partition dataset.
+
+        @param  X:  array of input image paths
+        @param  y:  array of labels
+        @param  ratio:  training/testing split
+
+        @return X_tr:   training input image paths
+        @return y_tr:   training image labels
+        @return X_te:   testing input image paths
+        @return y_te:   testing image labels
+        """
+        num_examples = X.shape[0]
+        indices = np.random.permutation(num_examples)
+        idx = int(ratio*num_examples)
+        X_tr = X[indices[:idx]]
+        y_tr = y[indices[:idx]]
+        X_te = X[indices[idx:]]
+        y_te = y[indices[idx:]]
+        return X_tr, y_tr, X_te, y_te
 
     def set_video_params(self, width, height, processor=None):
         """
@@ -84,6 +85,21 @@ class VideoDataset():
         """
         self._video.set_dimensions(width, height)
         self._video.set_processor(processor)
+
+    def process_batch(self, X, y, batch_size):
+        """
+        Process mini batch.
+        """
+        num_examples = X.shape[0]
+        indices = np.random.permutation(num_examples)[:batch_size]
+        X_batch = []
+        y_batch = y[indices]
+        for x in X[indices]:
+            self._video.set_video_path(x)
+            x_proc = self._video.run(display=False, return_frames=True)
+            X_batch.append(x_proc)
+        X_batch = np.array(X_batch)
+        return X_batch, y_batch
 
 def main():
     """ Main Function. """
@@ -101,16 +117,15 @@ def main():
     # create optical flow object
     opt = OpticalFlow(**opt_params)
     # create video data object
-    vids = VideoDataset(labels_path, num_videos=100, width=100, height=100,
-            processor=opt)
-    X, y = vids.read_data(display=False, return_frames=True)
-    print(X.dtype)
-    print(y.dtype)
-    print('X:', X.shape)
-    print('y:', y.shape)
-    # save flow datast
-    np.save('../data/X_flow_med.npy', X)
-    np.save('../data/y_flow_med.npy', y)
+    vids = VideoDataset(labels_path)
+    vids.set_video_params(width=300, height=200, processor=opt)
+    X, y = vids.read_data()
+    print('X:', len(X))
+    print('y:', len(y))
+    X_tr, y_tr, X_te, y_te = vids.partition_data(X, y, ratio=0.7)
+    X_batch, y_batch = vids.process_batch(X_tr, y_tr, batch_size=10) 
+    print(X_batch.shape, y_batch.shape)
+
 
 if __name__ == '__main__':
     main()
