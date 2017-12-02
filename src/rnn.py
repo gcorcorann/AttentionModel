@@ -12,7 +12,6 @@ Keys:
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-import torch.optim as optim
 
 class RNN(nn.Module):
     """ RNN based on image captioning. """
@@ -49,7 +48,6 @@ class RNN(nn.Module):
         Initialize hidden units to zero.
         """
         return Variable(torch.zeros(batch_size, self.hidden_size))
-
 
 def main():
     """ Main Function. """
