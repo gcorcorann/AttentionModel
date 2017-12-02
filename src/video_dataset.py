@@ -91,6 +91,7 @@ class VideoDataset():
         @return X_batch:        array of processed mini batch of videos
         @return y_batch:        array mini batch of video labels
         """
+        print('Retrieving/processing mini-batch...')
         num_examples = X.shape[0]
         indices = np.random.permutation(num_examples)[:batch_size]
         X_batch = []
@@ -101,6 +102,8 @@ class VideoDataset():
             x_proc = self._video.run(display=False, return_frames=True)
             X_batch.append(x_proc)
         X_batch = np.array(X_batch)
+        print('X_batch:', X_batch.shape)
+        print('y_batch:', y_batch.shape)
         return X_batch, y_batch
 
 def main():
@@ -127,8 +130,6 @@ def main():
     print('y:', len(y))
     X_tr, y_tr, X_te, y_te = vids.partition_data(X, y, ratio=0.7)
     X_batch, y_batch = vids.process_batch(X_tr, y_tr, batch_size=10) 
-    print(X_batch.shape, y_batch.shape)
-    print(X_batch.dtype, y_batch.dtype)
 
 if __name__ == '__main__':
     main()
