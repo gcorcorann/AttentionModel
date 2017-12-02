@@ -11,14 +11,11 @@ matrix.
 USAGE:  python video_dataset.py [<labels_source>]
 
 Keys:
-    q   -   skip video
+    q   -   skip video (only when video is being displayed)
 """
 import numpy as np
-from sklearn import preprocessing
 import cv2
-from os.path import isfile
 from video_player import Video
-from optical_flow import OpticalFlow
 
 class VideoDataset():
     """
@@ -37,20 +34,17 @@ class VideoDataset():
         """
         Read and store videos and labels located at labels_path.
 
-        @return X:
-        @return y:
+        @return X:  array of video path names
+        @return y:  array of video labels
         """
         # create empty arrays for features and labels
         X = []
         y = []
         with open(self._labels_path, 'r') as file:
              for i, line in enumerate(file):
-                print('Video', i+1)
                 video_path, video_label = line.split()
-                print(video_path, video_label)
                 X.append(video_path)
                 y.append(video_label)
-                print()
         return np.array(X), np.array(y)
 
     def partition_data(self, X, y, ratio):
@@ -89,13 +83,21 @@ class VideoDataset():
     def process_batch(self, X, y, batch_size):
         """
         Process mini batch.
+
+        @param  X:              array of input video paths
+        @param  y:              array of input video labels
+        @param  batch_size:     size of mini-batch for SGD
+
+        @return X_batch:        array of processed mini batch of videos
+        @return y_batch:        array mini batch of video labels
         """
         num_examples = X.shape[0]
         indices = np.random.permutation(num_examples)[:batch_size]
         X_batch = []
-        y_batch = y[indices]
-        for x in X[indices]:
-            self._video.set_video_path(x)
+        y_batch = np.asarray(y[indices], np.int32)
+        # for each video path
+        for vid_path in X[indices]:
+            self._video.set_video_path(vid_path)
             x_proc = self._video.run(display=False, return_frames=True)
             X_batch.append(x_proc)
         X_batch = np.array(X_batch)
@@ -104,6 +106,7 @@ class VideoDataset():
 def main():
     """ Main Function. """
     import sys
+    from optical_flow import OpticalFlow
     print(__doc__)
     if len(sys.argv) >= 2:
         # set command line input to labels path
@@ -125,7 +128,7 @@ def main():
     X_tr, y_tr, X_te, y_te = vids.partition_data(X, y, ratio=0.7)
     X_batch, y_batch = vids.process_batch(X_tr, y_tr, batch_size=10) 
     print(X_batch.shape, y_batch.shape)
-
+    print(X_batch.dtype, y_batch.dtype)
 
 if __name__ == '__main__':
     main()
