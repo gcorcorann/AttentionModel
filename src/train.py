@@ -1,128 +1,93 @@
 #!/usr/bin/env python3
 """
-RNN Training Module.
+C-RNN Training/Evaluation Module.
 
-This module trains an cnn+rnn model.
+@author:        Gary Corcoran
+@date_created:  Dec. 2nd, 2017
 
-@author: Gary Corcoran
-@date_created: Nov. 20th, 2017
+USAGE:  python train.py
 
-USAGE:  python rnn.py
-
-Keys:
+KEYS:
 """
+import numpy as np
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 import torch.optim as optim
-from cnn_features import CNN_Features
-from rnn import RNN
-import random
-import numpy as np
-import matplotlib.pyplot as plt
+from torch.autograd import Variable
+from optical_flow import OpticalFlow
+from video_dataset import VideoDataset
+from crnn import CRNN
 
-# HELPER FUNCTIONS #
-def read_data(X_path, y_path):
-    """
-    Read and return data.
+class Trainer():
+    """ Trains and Evaluates CRNN model. """
+    def __init__(self, crnn, vids):
+        self.crnn = crnn
+        self.vids = vids
+    
+    def train(self, X_tr, y_tr, epochs, batch_size):
+        print('Training Model...')
+        criterion = nn.NLLLoss()
+        optimizer = optim.SGD(self.crnn.parameters(), lr=0.01, momentum=0.9)
+        num_examples = len(X_tr)
+        for epoch in range(epochs):
+            print('Epoch:', epoch)
+            running_loss = 0.0
+            # pass through all training examples
+            for i in range(num_examples // batch_size):
+                # get processed batch of random training examples
+                X_batch, y_batch = self.vids.process_batch(X_tr, y_tr, 
+                        batch_size)
+                # reshape into nSequences x nBatch x nChannels x Height x Width
+                X_batch = np.swapaxes(X_batch, 0, 1)
+                X_batch = np.moveaxis(X_batch, -1, 2)
+                # wrap in pytorch variable
+                X_var = Variable(torch.from_numpy(X_batch))
+                y_var = Variable(torch.from_numpy(y_batch))
+                # zero the parameter gradients
+                # zero initial hidden state
+                hidden = self.crnn.init_hidden(batch_size)
+                # for each frame in sequence
+                loss = 0
+                for j in range(X_var.size()[0]):
+                    # pass through CRNN
+                    output, hidden = self.crnn(X_var[j], hidden)
+                    loss += criterion(output, y_var)
+                loss.backward()
+                optimizer.step()
+                running_loss += loss.data[0]
 
-    @param  X_path:     path to input data
-    @param  y_path:     path to input labels
+            # print statistics
+            print('Epoch Loss:', running_loss / num_examples * batch_size)
+            running_loss = 0
 
-    @return X:          array of input data
-    @return y:          array of input labels
-    """
-    X = np.load(X_path)
-    y = np.load(y_path)
-    return X, y
+        print('Finished Training...')
 
-def random_training_example(X_train, y_train, batch_size):
-    idx = np.random.permutation(X_train.shape[0])
-    idx = idx[:batch_size]
-    x = X_train[idx]
-    y = y_train[idx]
-    y -= 1  # [1-4] to [0-3]
-    y = np.asarray(y, dtype=np.int64)
-    # reshape into nSamples x nChannels x Height x Width
-    x = np.swapaxes(x, 0, 1)
-    x = np.moveaxis(x, -1, 2)
-    x_var = Variable(torch.from_numpy(x))
-    y_var = Variable(torch.from_numpy(y))
-    return x, x_var, y, y_var
-
-def train(cnn, rnn, X_train, y_train, criterion, optimizer):
-    batch_size = 1
-    all_losses = []
-    print('Training Model...')
-    for epoch in range(5):
-        print('Epoch:', epoch)
-        running_loss = 0.0
-        # go through all training examples
-        for i in range(X_train.shape[0]//batch_size):
-            # get random training examples
-            x, x_var, y, y_var = random_training_example(X_train, y_train,
-                    batch_size)
-            # zero the parameter gradients
-            optimizer.zero_grad()
-            # zero initial hidden state
-            hidden = rnn.init_hidden(batch_size)
-            # for each frame in sequence
-            for j in range(x_var.size()[0]):
-                # pass through CNN
-                cnn_feats = cnn(x_var[j])
-                # pass through RNN
-                output, hidden = rnn(cnn_feats, hidden)
-            # back + optimize
-            loss = criterion(output, y_var)
-            loss.backward()
-            optimizer.step()
-            running_loss += loss.data[0]
-
-        # print statistics
-        running_loss *= (batch_size/X_train.shape[0])
-        all_losses.append(running_loss)
-        print('Epoch loss:', running_loss)
-
-    print('Finished Training...')
-    return all_losses
-            
 def main():
     """ Main Function. """
     print(__doc__)
-    # load small flow dataset
-    X_train, y_train = read_data('../data/X_flow_small.npy',
-            '../data/y_flow_small.npy')
-    print('X_train:', X_train.shape)
-    print('y_train:', y_train.shape)
-    print()
-    # create CNN object
-    cnn = CNN_Features()
-    print(cnn)
-    params = list(cnn.parameters())
-    # last layer in CNN module
-    rnn_input_size = params[-1].size()[0]
-    # rnn parameters
-    rnn_params = {'input_size': rnn_input_size, 'hidden_size': 256,
-        'output_size': 4}
-    # initialize RNN object
-    rnn = RNN(**rnn_params)
-    print(rnn)
-    print()
-
-    # define a loss function and optimizer
-    criterion = nn.NLLLoss()
-    optimizer = optim.SGD([
-        {'params': cnn.parameters(), 'lr': 1e-3, 'momentum': 0.9},
-        {'params': rnn.parameters(), 'lr': 1e-3, 'momentum': 0.9}
-        ])
-    
+    # optical flow parameters
+    opt_params = {'pyr_scale': 0.5, 'levels': 3, 'winsize': 15, 'iterations': 3,
+        'poly_n': 5, 'poly_sigma': 1.2}
+    # create optical flow object
+    opt = OpticalFlow(**opt_params)
+    # video dataset parameters
+    labels_path = '../labels_gary.txt'
+    width = 100
+    height = 100
+    processor = opt
+    # create video data object
+    vids = VideoDataset(labels_path)
+    vids.set_video_params(width, height, processor)
+    # read video paths and labels
+    X, y = vids.read_data()
+    # partition dataset
+    X_tr, y_tr, X_te, y_te = vids.partition_data(X, y, ratio=0.1)
+    # create CRNN model
+    crnn = CRNN()
+    print(crnn)
     # train model
-    losses = train(cnn, rnn, X_train, y_train, criterion, optimizer)
-    # display training loss
-    plt.figure()
-    plt.plot(losses)
-    plt.title('Training Losses'), plt.xlabel('Epoch'), plt.ylabel('Loss')
-    plt.show()
+    tr = Trainer(crnn, vids)
+    tr.train(X_tr, y_tr, epochs=5, batch_size=50)
 
 if __name__ == '__main__':
     main()
