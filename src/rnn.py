@@ -57,7 +57,6 @@ def main():
     # initialize RNN object
     rnn = RNN(**rnn_params)
     print(rnn)
-    print()
 
 if __name__ == '__main__':
     main()
