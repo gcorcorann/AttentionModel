@@ -27,7 +27,7 @@ class Trainer():
     def train(self, X_tr, y_tr, epochs, batch_size):
         print('Training Model...')
         criterion = nn.NLLLoss()
-        optimizer = optim.SGD(self.crnn.parameters(), lr=0.01, momentum=0.9)
+        optimizer = optim.SGD(self.crnn.parameters(), lr=0.0001, momentum=0.9)
         num_examples = len(X_tr)
         for epoch in range(epochs):
             print('Epoch:', epoch)
@@ -57,7 +57,7 @@ class Trainer():
                 running_loss += loss.data[0]
 
             # print statistics
-            print('Epoch Loss:', running_loss / num_examples * batch_size)
+            print('\tEpoch Loss:', running_loss / num_examples * batch_size)
             running_loss = 0
 
         print('Finished Training...')
@@ -81,13 +81,15 @@ def main():
     # read video paths and labels
     X, y = vids.read_data()
     # partition dataset
-    X_tr, y_tr, X_te, y_te = vids.partition_data(X, y, ratio=0.1)
+    X_tr, y_tr, X_te, y_te = vids.partition_data(X, y, ratio=0.0058)
+    print(X_tr.shape)
+    print(y_tr.shape)
     # create CRNN model
     crnn = CRNN()
     print(crnn)
     # train model
     tr = Trainer(crnn, vids)
-    tr.train(X_tr, y_tr, epochs=5, batch_size=50)
+    tr.train(X_tr, y_tr, epochs=5, batch_size=5)
 
 if __name__ == '__main__':
     main()
