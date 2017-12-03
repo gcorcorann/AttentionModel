@@ -14,7 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-class CNN_Features(nn.Module):
+class CNN(nn.Module):
     """ CNN Features Modules. """
     def __init__(self):
         super(CNN_Features, self).__init__()
