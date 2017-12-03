@@ -9,14 +9,14 @@ USAGE:  python crnn.py
 
 """
 import torch.nn as nn
-from cnn_features import CNN_Features
+from cnn import CNN
 from rnn import RNN
 
 class CRNN(nn.Module):
     """ C-RNN Module. """
     def __init__(self):
         super(CRNN, self).__init__()
-        self.cnn = CNN_Features()
+        self.cnn = CNN()
         self.rnn = RNN(input_size=2048, hidden_size=256, output_size=4)
 
     def forward(self, x, hidden):
