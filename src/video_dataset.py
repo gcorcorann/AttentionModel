@@ -95,7 +95,8 @@ class VideoDataset():
         num_examples = X.shape[0]
         indices = np.random.permutation(num_examples)[:batch_size]
         X_batch = []
-        y_batch = np.asarray(y[indices], np.int32)
+        y_batch = np.asarray(y[indices], np.int64)
+        y_batch -= 1
         # for each video path
         for vid_path in X[indices]:
             self._video.set_video_path(vid_path)
