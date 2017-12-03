@@ -17,7 +17,7 @@ import torch.optim as optim
 class CNN(nn.Module):
     """ CNN Features Modules. """
     def __init__(self):
-        super(CNN_Features, self).__init__()
+        super(CNN, self).__init__()
         # 1 input image channel, 6 output channels, 5x5 square convolution
         self.conv1 = nn.Conv2d(2, 6, 5)
         self.conv2 = nn.Conv2d(6, 16, 5)
