@@ -185,7 +185,7 @@ class Video():
                 frame2 = cv2.resize(frame2, (self._width, self._height))
             gray2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
             # check if processor is set 
-            if self.check_processor:
+            if self.check_processor():
                 flow = self._processor.compute(gray1, gray2)
                 # append processed frames into list
                 if return_frames:
