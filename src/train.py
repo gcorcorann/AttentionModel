@@ -39,12 +39,15 @@ class Trainer():
                 # get processed batch of random training examples
                 X_batch, y_batch = self.vids.process_batch(X_tr, y_tr, 
                         batch_size)
+                print(X_batch.shape)
+                print(y_batch.dtype)
                 # reshape into nSequences x nBatch x nChannels x Height x Width
                 X_batch = np.swapaxes(X_batch, 0, 1)
                 X_batch = np.moveaxis(X_batch, -1, 2)
                 # wrap in pytorch variable
                 X_var = Variable(torch.from_numpy(X_batch))
                 y_var = Variable(torch.from_numpy(y_batch))
+                print('y_var', y_var)
                 # zero the parameter gradients
                 self.crnn.zero_grad()
                 # zero initial hidden state
@@ -55,6 +58,7 @@ class Trainer():
                 for j in range(num_frames):
                     # pass through CRNN
                     output, hidden = self.crnn(X_var[j], hidden)
+                    print(output)
                     loss += criterion(output, y_var)
                     running_acc += self.accuracy(output, y_var)
 
@@ -122,6 +126,8 @@ def main():
     y_tr = y_tr[:10].copy()
     X_te = X_te[:10].copy()
     y_te = y_te[:10].copy()
+    print(X_tr)
+    print(y_tr)
     # create CRNN model
     crnn = CRNN()
     print(crnn)

@@ -3,7 +3,7 @@
 Video Dataset Module.
 
 This module reads video dataset and respective labels and stores it in numpy 
-matrix.
+matrix, with additional frame processing if specified.
 
 @author: Gary Corcoran
 @date_created: Nov. 20th, 2017
@@ -107,6 +107,30 @@ class VideoDataset():
         print('y_batch:', y_batch.shape)
         return X_batch, y_batch
 
+    def store_data(self, X, y, num_instances=None):
+        """
+        Save video data to disk.
+
+        @param  X:              array of input video paths
+        @param  y:              array of input video labels
+        @param  num_instances:  number of instances to save on disk
+        """
+        print('Reading videos and storing to disk...')
+        # random indices of videos
+        indices = np.random.permutation(len(X))[:num_instances]
+        X_data = np.zeros((num_instances, 100, 100, 100, 3), dtype=np.uint8)
+        y_data = np.asarray(y[indices], np.int64)
+        y_data -= 1
+        for i, vid_path in enumerate(X[indices]):
+            print(i, vid_path)
+            self._video.set_video_path(vid_path)
+            vid = self._video.run(display=False, return_frames=True)
+            X_data[i] = vid
+        np.save('../data/X_videos_small.npy', X_data)
+        np.save('../data/y_videos_small.npy', y_data)
+        print(X_data)
+        print(y_data)
+
 def main():
     """ Main Function. """
     import sys
@@ -119,18 +143,19 @@ def main():
         # set default labels path
         labels_path = '../labels_gary.txt'
     # optical flow parameters
-    opt_params = {'pyr_scale': 0.5, 'levels': 3, 'winsize': 15, 'iterations': 3,
-        'poly_n': 5, 'poly_sigma': 1.2}
-    # create optical flow object
-    opt = OpticalFlow(**opt_params)
+#    opt_params = {'pyr_scale': 0.5, 'levels': 3, 'winsize': 15, 'iterations': 3,
+#        'poly_n': 5, 'poly_sigma': 1.2}
+#    # create optical flow object
+#    opt = OpticalFlow(**opt_params)
     # create video data object
     vids = VideoDataset(labels_path)
-    vids.set_video_params(width=300, height=200, processor=opt)
+    vids.set_video_params(width=100, height=100, processor=None)
     X, y = vids.read_data()
     print('X:', len(X))
     print('y:', len(y))
-    X_tr, y_tr, X_te, y_te = vids.partition_data(X, y, ratio=0.7)
-    X_batch, y_batch = vids.process_batch(X_tr, y_tr, batch_size=10) 
+    vids.store_data(X, y, num_instances=100)
+#    X_tr, y_tr, X_te, y_te = vids.partition_data(X, y, ratio=0.7)
+#    X_batch, y_batch = vids.process_batch(X_tr, y_tr, batch_size=10) 
 
 if __name__ == '__main__':
     main()

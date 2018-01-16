@@ -161,18 +161,18 @@ class Video():
         # check if video openec successfully
         if not self._is_opened():
             return
-        # read video frame
-        ret, frame1 = self._read()
-        # check if frame was successfully read
-        if not ret:
-            return
-        if not self.check_dimensions():
-            frame1 = cv2.resize(frame1, None, fx=0.5, fy=0.5)
-        else:
-            frame1 = cv2.resize(frame1, (self._width, self._height))
-        gray1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
+#        # read video frame
+#        ret, frame1 = self._read()
+#        # check if frame was successfully read
+#        if not ret:
+#            return
+#        if not self.check_dimensions():
+#            frame1 = cv2.resize(frame1, None, fx=0.5, fy=0.5)
+#        else:
+#            frame1 = cv2.resize(frame1, (self._width, self._height))
+#        gray1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
         # initialize list of processed frames
-        if return_frames and self.check_processor:
+        if return_frames:
             X_video = []
         # while video is still opened
         while self._is_opened():
@@ -183,26 +183,27 @@ class Video():
                 frame2 = cv2.resize(frame2, None, fx=0.5, fy=0.5)
             else:
                 frame2 = cv2.resize(frame2, (self._width, self._height))
-            gray2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
-            # check if processor is set 
-            if self.check_processor():
-                flow = self._processor.compute(gray1, gray2)
-                # append processed frames into list
-                if return_frames:
-                    X_video.append(flow)
-                if display:
-                    disp_img = self._processor.visualize(frame2)
-            else:
-                if display:
-                    disp_img = frame2
-            # display
-            if display:
-                if not self._display(disp_img):
-                    break
-            # set previous frame to current frame
-            gray1 = gray2
-        if self.check_processor and return_frames:
-            return np.array(X_video)
+            X_video.append(frame2)
+#            gray2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
+#            # check if processor is set 
+#            if self.check_processor():
+#                flow = self._processor.compute(gray1, gray2)
+#                # append processed frames into list
+#                if return_frames:
+#                    X_video.append(flow)
+#                if display:
+#                    disp_img = self._processor.visualize(frame2)
+#            else:
+#                if display:
+#                    disp_img = frame2
+#            # display
+#            if display:
+#                if not self._display(disp_img):
+#                    break
+#            # set previous frame to current frame
+##            gray1 = gray2
+#        if self.check_processor and return_frames:
+        return np.array(X_video)
 
 def main():
     """ Main Function. """
